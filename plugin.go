@@ -120,10 +120,22 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// If no headers or invalid key, return 403
-	response := Response{
-		Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: $key or %s: Bearer $key", ka.authenticationHeaderName, ka.bearerHeaderName),
-		StatusCode: http.StatusForbidden,
+	var response Response
+	if ka.authenticationHeader && ka.bearerHeader {
+		response = Response{
+			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using either %s: $key or %s: Bearer $key", ka.authenticationHeaderName, ka.bearerHeaderName),
+			StatusCode: http.StatusForbidden,
+		}
+	} else if ka.authenticationHeader && !ka.bearerHeader {
+		response = Response{
+			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: $key", ka.authenticationHeaderName),
+			StatusCode: http.StatusForbidden,
+		}
+	} else if !ka.authenticationHeader && ka.bearerHeader {
+		response = Response{
+			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: $key", ka.bearerHeaderName),
+			StatusCode: http.StatusForbidden,
+		}
 	}
 	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 	rw.WriteHeader(response.StatusCode)
