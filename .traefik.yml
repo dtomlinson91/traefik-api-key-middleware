@@ -7,5 +7,10 @@ import: github.com/dtomlinson91/traefik-api-key-middleware
 summary: "Authorise API requests with an API Key"
 
 testData:
+  authenticationHeader: true
+  authenticationheaderName: X-API-KEY
+  bearerHeader: true
+  bearerHeaderName: Authorization
+  removeHeadersOnSuccess: true
   keys:
     - 83AB3503-50AA-4B57-9386-B9F0BADF2013
