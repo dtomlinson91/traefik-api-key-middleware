@@ -1,4 +1,4 @@
-package plugin
+package traefik_api_key_middleware
 
 import (
 	"context"
@@ -68,7 +68,8 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 }
 
 // contains takes an API key and compares it to the list of valid API keys. The return value notes whether the
-// key is in the list or not.
+// key is in the valid keys
+// list or not.
 func contains(key string, validKeys []string) bool {
 	for _, a := range validKeys {
 		if a == key {
@@ -79,12 +80,13 @@ func contains(key string, validKeys []string) bool {
 }
 
 // bearer takes an API key in the `Authorization: Bearer $token` form and compares it to the list of valid keys.
-// The token/key is extracted from the header value. The return value notes whether the key is in the list or not.
+// The token/key is extracted from the header value. The return value notes whether the key is in the valid keys
+// list or not.
 func bearer(key string, validKeys []string) bool {
 	re, _ := regexp.Compile(`Bearer\s(?P<key>[^$]+)`)
 	matches := re.FindStringSubmatch(key)
 
-	// If no match found the key is either not valid or in the wrong form.
+	// If no match found the value is in the wrong form.
 	if matches == nil {
 		return false
 	}
@@ -126,7 +128,7 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 	rw.WriteHeader(response.StatusCode)
 
-	// Send error response
+	// If no headers or invalid key, return 403
 	if err := json.NewEncoder(rw).Encode(response); err != nil {
 		// If response cannot be written, log error
 		fmt.Printf("Error when sending response to an invalid key: %s", err.Error())
