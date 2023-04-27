@@ -1,0 +1,11 @@
+﻿displayName: API Key Middleware
+type: middleware
+iconPath: .assets/icon.png
+
+import: github.com/dtomlinson91/traefik-api-key-middleware
+
+summary: "Authorise API requests with an API Key"
+
+testData:
+  keys:
+    - 83AB3503-50AA-4B57-9386-B9F0BADF2013
