@@ -9,9 +9,12 @@ import (
 )
 
 type Config struct {
-	HeaderName            string   `json:"headerName,omitempty"`
-	Keys                  []string `json:"keys,omitempty"`
-	RemoveHeaderOnSuccess bool     `json:"removeHeaderOnSuccess,omitempty"`
+	AuthenticationHeader     bool     `json:"authenticationHeader,omitempty"`
+	AuthenticationHeaderName string   `json:"headerName,omitempty"`
+	BearerHeader             bool     `json:"bearerHeader,omitempty"`
+	BearerHeaderName         string   `json:"bearerHeaderName,omitempty"`
+	Keys                     []string `json:"keys,omitempty"`
+	RemoveHeadersOnSuccess   bool     `json:"removeHeadersOnSuccess,omitempty"`
 }
 
 type Response struct {
@@ -21,30 +24,46 @@ type Response struct {
 
 func CreateConfig() *Config {
 	return &Config{
-		HeaderName:            "X-API-KEY",
-		Keys:                  make([]string, 0),
-		RemoveHeaderOnSuccess: true,
+		AuthenticationHeader:     true,
+		AuthenticationHeaderName: "X-API-KEY",
+		BearerHeader:             true,
+		BearerHeaderName:         "Authorization",
+		Keys:                     make([]string, 0),
+		RemoveHeadersOnSuccess:   true,
 	}
 }
 
 type KeyAuth struct {
-	next                  http.Handler
-	headerName            string
-	keys                  []string
-	removeHeaderOnSuccess bool
+	next                     http.Handler
+	authenticationHeader     bool
+	authenticationHeaderName string
+	bearerHeader             bool
+	bearerHeaderName         string
+	keys                     []string
+	removeHeadersOnSuccess   bool
 }
 
 func New(ctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
 	fmt.Printf("Creating plugin: %s instance: %+v, ctx: %+v\n", name, *config, ctx)
+
+	// check for empty keys
 	if len(config.Keys) == 0 {
 		return nil, fmt.Errorf("must specify at least one valid key")
 	}
 
+	// check at least one header is set
+	if !config.AuthenticationHeader && !config.BearerHeader {
+		return nil, fmt.Errorf("at least one header type must be true")
+	}
+
 	return &KeyAuth{
-		next:                  next,
-		headerName:            config.HeaderName,
-		keys:                  config.Keys,
-		removeHeaderOnSuccess: config.RemoveHeaderOnSuccess,
+		next:                     next,
+		authenticationHeader:     config.AuthenticationHeader,
+		authenticationHeaderName: config.AuthenticationHeaderName,
+		bearerHeader:             config.BearerHeader,
+		bearerHeaderName:         config.BearerHeaderName,
+		keys:                     config.Keys,
+		removeHeadersOnSuccess:   config.RemoveHeadersOnSuccess,
 	}, nil
 }
 
@@ -76,33 +95,41 @@ func bearer(key string, validKeys []string) bool {
 	return contains(extractedKey, validKeys)
 }
 
-func (a *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// Check headers for valid key
-	if contains(req.Header.Get(a.headerName), a.keys) {
-		// X-API-KEY header contains a valid key
-		if a.removeHeaderOnSuccess {
-			req.Header.Del(a.headerName)
+func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Check authentication header for valid key
+	if ka.authenticationHeader {
+		if contains(req.Header.Get(ka.authenticationHeaderName), ka.keys) {
+			// X-API-KEY header contains a valid key
+			if ka.removeHeadersOnSuccess {
+				req.Header.Del(ka.authenticationHeaderName)
+			}
+			ka.next.ServeHTTP(rw, req)
 		}
-		a.next.ServeHTTP(rw, req)
-	} else if bearer(req.Header.Get("Authorization"), a.keys) {
-		// Authorization header contains a valid Bearer token
-		if a.removeHeaderOnSuccess {
-			req.Header.Del("Authorization")
-		}
-		a.next.ServeHTTP(rw, req)
-	} else {
-		// If no headers or invalid key, return 403
-		response := Response{
-			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: $key or Authorization: Bearer $key", a.headerName),
-			StatusCode: http.StatusForbidden,
-		}
-		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
-		rw.WriteHeader(response.StatusCode)
+	}
 
-		// Send error response
-		if err := json.NewEncoder(rw).Encode(response); err != nil {
-			// If response cannot be written, log error
-			fmt.Printf("Error when sending response to an invalid key: %s", err.Error())
+	// Check authorization header for valid Bearer
+	if ka.bearerHeader {
+		if bearer(req.Header.Get(ka.bearerHeaderName), ka.keys) {
+			// Authorization header contains a valid Bearer token
+			if ka.removeHeadersOnSuccess {
+				req.Header.Del(ka.bearerHeaderName)
+			}
+			ka.next.ServeHTTP(rw, req)
 		}
+	}
+
+	// If no headers or invalid key, return 403
+	response := Response{
+		Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: $key or %s: Bearer $key", ka.authenticationHeaderName, ka.bearerHeaderName),
+		StatusCode: http.StatusForbidden,
+	}
+	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+	rw.WriteHeader(response.StatusCode)
+
+	// Send error response
+	if err := json.NewEncoder(rw).Encode(response); err != nil {
+		// If response cannot be written, log error
+		fmt.Printf("Error when sending response to an invalid key: %s", err.Error())
+
 	}
 }
