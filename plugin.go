@@ -133,7 +133,7 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	} else if !ka.authenticationHeader && ka.bearerHeader {
 		response = Response{
-			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: $key", ka.bearerHeaderName),
+			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: Bearer $key", ka.bearerHeaderName),
 			StatusCode: http.StatusForbidden,
 		}
 	}
