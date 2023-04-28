@@ -113,7 +113,7 @@ spec:
     - kind: Rule
       match: PathPrefix(`/protected-route`)
       middlewares:
-        - name: api-key-verify
+        - name: verify-api-key
       services:
         - kind: Service
           name: service-name
