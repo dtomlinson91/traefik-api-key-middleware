@@ -51,11 +51,11 @@ http:
     my-traefik-api-key-middleware:
       plugin:
         traefik-api-key-middleware:
-          authenticationHeader: "true"
+          authenticationHeader: true
           authenticationheaderName: X-API-KEY
-          bearerHeader: "true"
+          bearerHeader: true
           bearerHeaderName: Authorization
-          removeHeadersOnSuccess: "true"
+          removeHeadersOnSuccess: true
           keys:
             - some-api-key
 ```
@@ -68,11 +68,11 @@ http:
     [http.middlewares.my-traefik-api-key-middleware]
       [http.middlewares.my-traefik-api-key-middleware.plugin]
         [http.middlewares.my-traefik-api-key-middleware.plugin.traefik-api-key-middleware]
-          authenticationHeader = "true"
+          authenticationHeader = true
           authenticationheaderName = "X-API-KEY"
-          bearerHeader = "true"
+          bearerHeader = true
           bearerHeaderName = "Authorization"
-          removeHeadersOnSuccess = "true"
+          removeHeadersOnSuccess = true
           keys = ["some-api-key"]
 ```
 
@@ -86,11 +86,11 @@ metadata:
 spec:
   plugin:
     traefik-api-key-middleware:
-      authenticationHeader: "true"
+      authenticationHeader: true
       authenticationheaderName: X-API-KEY
-      bearerHeader: "true"
+      bearerHeader: true
       bearerHeaderName: Authorization
-      removeHeadersOnSuccess: "true"
+      removeHeadersOnSuccess: true
       keys:
         - some-api-key
 ```
