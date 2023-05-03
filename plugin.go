@@ -144,6 +144,5 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err := json.NewEncoder(rw).Encode(response); err != nil {
 		// If response cannot be written, log error
 		fmt.Printf("Error when sending response to an invalid key: %s", err.Error())
-
 	}
 }
