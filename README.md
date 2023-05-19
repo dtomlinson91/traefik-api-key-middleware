@@ -19,7 +19,7 @@ experimental:
   plugins:
     traefik-api-key-middleware:
       moduleName: "github.com/dtomlinson91/traefik-api-key-middleware"
-      version: "v0.1.1"
+      version: "v0.1.2"
 ```
 
 #### toml
@@ -27,7 +27,7 @@ experimental:
 ```toml
 [experimental.plugins.traefik-api-key-middleware]
   moduleName = "github.com/dtomlinson91/traefik-api-key-middleware"
-  version = "v0.1.1"
+  version = "v0.1.2"
 ```
 
 ### CLI
@@ -36,7 +36,7 @@ Add to your startup args:
 
 ```sh
 --experimental.plugins.traefik-api-key-middleware.modulename=github.com/dtomlinson91/traefik-api-key-middleware
---experimental.plugins.traefik-api-key-middleware.version=v0.1.1
+--experimental.plugins.traefik-api-key-middleware.version=v0.1.2
 ```
 
 ### Dynamic configuration
