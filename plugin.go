@@ -106,6 +106,7 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				req.Header.Del(ka.authenticationHeaderName)
 			}
 			ka.next.ServeHTTP(rw, req)
+			return
 		}
 	}
 
@@ -117,6 +118,7 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				req.Header.Del(ka.bearerHeaderName)
 			}
 			ka.next.ServeHTTP(rw, req)
+			return
 		}
 	}
 
