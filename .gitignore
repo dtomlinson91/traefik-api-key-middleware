@@ -22,3 +22,5 @@ go.work
 
 # Mac
 .DS_STORE
+
+.vscode/
