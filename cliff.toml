@@ -1,0 +1,59 @@
+# configuration file for git-cliff (0.1.0)
+
+[changelog]
+# changelog header
+header = """
+# Changelog
+All notable changes to this project will be documented in this file.\n
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
+"""
+# template for the changelog body
+# https://tera.netlify.app/docs/#introduction
+body = """
+{% if version %}\
+    ## [{{ version }}](https://github.com/dtomlinson91/traefik-api-key-middleware/commits/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+    {% if previous.version %}\
+    <small>[Compare with {{ previous.version }}](https://github.com/dtomlinson91/traefik-api-key-middleware/compare/{{ previous.version }}...{{ version }})</small>
+    {% endif %}\
+{% else %}\
+    ## [unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | upper_first }}
+    {% for commit in commits %}
+        - {% if commit.breaking %}💥 **breaking**: {% endif %}{{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/dtomlinson91/traefik-api-key-middleware/commit/{{ commit.id }}))\
+        {% if commit.breaking %}\n\n{{commit.footers.0 | upper_first}}{% endif %}\
+    {% endfor %}\
+{% endfor %}\n
+"""
+# remove the leading and trailing whitespaces from the template
+trim = true
+# changelog footer
+footer = """
+"""
+
+[git]
+# allow only conventional commits
+# https://www.conventionalcommits.org
+conventional_commits = true
+# regex for parsing and grouping commits
+commit_parsers = [
+    { message = "^feat", group = "✨ Features"},
+    { message = "^fix", group = "🐛 Bug Fixes"},
+    { message = "^doc", group = "📘 Documentation"},
+    { message = "^perf", group = "🏎 Performance"},
+    { message = "^refactor", group = "🛠 Refactor/Improvement"},
+    { message = "^style", group = "🎨 Styling"},
+    { message = "^test", group = "🧪 Testing"},
+    { message = "^build", group = "🧱 Build"},
+    { body = ".*security", group = "🔐 Security"},
+    { message = "^chore\\(release\\): prepare for", skip = true},
+    { message = "^chore", group = "🥱 Miscellaneous Tasks", skip = true},
+]
+# filter out the commits that are not matched by commit parsers
+filter_commits = false
+# glob pattern for matching git tags
+tag_pattern = "v[0-9]*"
+# regex for skipping tags
+# skip_tags = "v0.1.0-beta.1"
