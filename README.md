@@ -48,11 +48,11 @@ Configure the plugin
 ```yaml
 http:
   middlewares:
-    my-traefik-api-key-middleware:
+    verify-api-key:
       plugin:
         traefik-api-key-middleware:
           authenticationHeader: true
-          authenticationheaderName: X-API-KEY
+          authenticationHeaderName: X-API-KEY
           bearerHeader: true
           bearerHeaderName: Authorization
           removeHeadersOnSuccess: true
@@ -65,11 +65,11 @@ http:
 ```toml
 [http]
   [http.middlewares]
-    [http.middlewares.my-traefik-api-key-middleware]
-      [http.middlewares.my-traefik-api-key-middleware.plugin]
-        [http.middlewares.my-traefik-api-key-middleware.plugin.traefik-api-key-middleware]
+    [http.middlewares.verify-api-key]
+      [http.middlewares.verify-api-key.plugin]
+        [http.middlewares.verify-api-key.plugin.traefik-api-key-middleware]
           authenticationHeader = true
-          authenticationheaderName = "X-API-KEY"
+          authenticationHeaderName = "X-API-KEY"
           bearerHeader = true
           bearerHeaderName = "Authorization"
           removeHeadersOnSuccess = true
@@ -87,7 +87,7 @@ spec:
   plugin:
     traefik-api-key-middleware:
       authenticationHeader: true
-      authenticationheaderName: X-API-KEY
+      authenticationHeaderName: X-API-KEY
       bearerHeader: true
       bearerHeaderName: Authorization
       removeHeadersOnSuccess: true
@@ -122,17 +122,17 @@ spec:
 
 ## Plugin options
 
-| option                     | default           | type     | description                                                | required |
+| option                     | default           | type     | description                                                | optional |
 | :------------------------- | :---------------- | :------- | :--------------------------------------------------------- | :------- |
 | `authenticationHeader`     | `true`            | bool     | Use an authentication header to pass a valid key.          | ⚠️       |
-| `authenticationheaderName` | `"X-API-KEY"`     | string   | The name of the authentication header.                     | ❌       |
+| `authenticationHeaderName` | `"X-API-KEY"`     | string   | The name of the authentication header.                     | ✅       |
 | `bearerHeader`             | `true`            | bool     | Use an authorization header to pass a bearer token (key).  | ⚠️       |
-| `bearerHeaderName`         | `"Authorization"` | string   | The name of the authorization bearer header.               | ❌       |
-| `removeHeadersOnSuccess`   | `true`            | bool     | If true will remove the header on success.                 | ❌       |
-| `keys`                     | `[]`              | []string | A list of valid keys that can be passed using the headers. | ✅       |
+| `bearerHeaderName`         | `"Authorization"` | string   | The name of the authorization bearer header.               | ✅       |
+| `removeHeadersOnSuccess`   | `true`            | bool     | If true will remove the header on success.                 | ✅       |
+| `keys`                     | `[]`              | []string | A list of valid keys that can be passed using the headers. | ❌       |
 
 ⚠️ - Is optional but at least one of `authenticationHeader` or `bearerHeader` must be set to `true`.
 
-❌ - Is optional and will use the default values if not set.
+❌ - Required.
 
-✅ - Required.
+✅ - Is optional and will use the default values if not set.
