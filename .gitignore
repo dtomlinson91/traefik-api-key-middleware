@@ -24,3 +24,5 @@ go.work
 .DS_STORE
 
 .vscode/
+
+__pycache__/
