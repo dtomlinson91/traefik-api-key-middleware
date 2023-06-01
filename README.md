@@ -52,7 +52,7 @@ http:
       plugin:
         traefik-api-key-middleware:
           authenticationHeader: true
-          authenticationheaderName: X-API-KEY
+          authenticationHeaderName: X-API-KEY
           bearerHeader: true
           bearerHeaderName: Authorization
           removeHeadersOnSuccess: true
@@ -69,7 +69,7 @@ http:
       [http.middlewares.verify-api-key.plugin]
         [http.middlewares.verify-api-key.plugin.traefik-api-key-middleware]
           authenticationHeader = true
-          authenticationheaderName = "X-API-KEY"
+          authenticationHeaderName = "X-API-KEY"
           bearerHeader = true
           bearerHeaderName = "Authorization"
           removeHeadersOnSuccess = true
@@ -87,7 +87,7 @@ spec:
   plugin:
     traefik-api-key-middleware:
       authenticationHeader: true
-      authenticationheaderName: X-API-KEY
+      authenticationHeaderName: X-API-KEY
       bearerHeader: true
       bearerHeaderName: Authorization
       removeHeadersOnSuccess: true
@@ -125,7 +125,7 @@ spec:
 | option                     | default           | type     | description                                                | required |
 | :------------------------- | :---------------- | :------- | :--------------------------------------------------------- | :------- |
 | `authenticationHeader`     | `true`            | bool     | Use an authentication header to pass a valid key.          | ⚠️       |
-| `authenticationheaderName` | `"X-API-KEY"`     | string   | The name of the authentication header.                     | ❌       |
+| `authenticationHeaderName` | `"X-API-KEY"`     | string   | The name of the authentication header.                     | ❌       |
 | `bearerHeader`             | `true`            | bool     | Use an authorization header to pass a bearer token (key).  | ⚠️       |
 | `bearerHeaderName`         | `"Authorization"` | string   | The name of the authorization bearer header.               | ❌       |
 | `removeHeadersOnSuccess`   | `true`            | bool     | If true will remove the header on success.                 | ❌       |
