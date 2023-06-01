@@ -48,7 +48,7 @@ Configure the plugin
 ```yaml
 http:
   middlewares:
-    my-traefik-api-key-middleware:
+    verify-api-key:
       plugin:
         traefik-api-key-middleware:
           authenticationHeader: true
@@ -65,9 +65,9 @@ http:
 ```toml
 [http]
   [http.middlewares]
-    [http.middlewares.my-traefik-api-key-middleware]
-      [http.middlewares.my-traefik-api-key-middleware.plugin]
-        [http.middlewares.my-traefik-api-key-middleware.plugin.traefik-api-key-middleware]
+    [http.middlewares.verify-api-key]
+      [http.middlewares.verify-api-key.plugin]
+        [http.middlewares.verify-api-key.plugin.traefik-api-key-middleware]
           authenticationHeader = true
           authenticationheaderName = "X-API-KEY"
           bearerHeader = true
