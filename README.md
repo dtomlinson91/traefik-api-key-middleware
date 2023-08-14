@@ -6,6 +6,17 @@ You can protect routes using `X-API-KEY:$key` or `Authorization: Bearer $key` he
 
 Valid keys are specified in a list. When a user visits a protected route and provides one of these headers, the key is looked up. If it is found in your valid keys the middleware succeeds. If the key is not found, or an incorrect header is provided, a 403 is returned to the user.
 
+You can use a list of hashed keys, hashed with htpasswd bcrypt and sha  algorythm (md not supported yet)
+
+Example:
+```bash
+htpasswd -nbB "" mypassword | cut -c 2- # hash "mypassword" using bcrypt
+$2y$05$Lw8/QZ2NPfe2W/kcuI3eyOViCwwmRhIt4kzpd7MUxY4r/jLWGlquq
+
+htpasswd -nbs "" mypassword | cut -c 2- # hash "mypassword" using sha1
+{SHA}kd/Z3bQZiv/FwZTNjObTOP3kcOI=
+```
+
 ## Config
 
 ### Static file
@@ -58,6 +69,8 @@ http:
           removeHeadersOnSuccess: true
           keys:
             - some-api-key
+          hashedKeys:
+            - $2y$05$Lw8/QZ2NPfe2W/kcuI3eyOViCwwmRhIt4kzpd7MUxY4r/jLWGlquq
 ```
 
 ### toml
@@ -74,6 +87,7 @@ http:
           bearerHeaderName = "Authorization"
           removeHeadersOnSuccess = true
           keys = ["some-api-key"]
+          hashedKeys = ["$2y$05$Lw8/QZ2NPfe2W/kcuI3eyOViCwwmRhIt4kzpd7MUxY4r/jLWGlquq"]
 ```
 
 ### K8s CRD
@@ -93,6 +107,8 @@ spec:
       removeHeadersOnSuccess: true
       keys:
         - some-api-key
+      hashedKeys:
+        - $2y$05$Lw8/QZ2NPfe2W/kcuI3eyOViCwwmRhIt4kzpd7MUxY4r/jLWGlquq
 ```
 
 ## Usage
@@ -122,14 +138,15 @@ spec:
 
 ## Plugin options
 
-| option                     | default           | type     | description                                                | optional |
-| :------------------------- | :---------------- | :------- | :--------------------------------------------------------- | :------- |
-| `authenticationHeader`     | `true`            | bool     | Use an authentication header to pass a valid key.          | ⚠️       |
-| `authenticationHeaderName` | `"X-API-KEY"`     | string   | The name of the authentication header.                     | ✅       |
-| `bearerHeader`             | `true`            | bool     | Use an authorization header to pass a bearer token (key).  | ⚠️       |
-| `bearerHeaderName`         | `"Authorization"` | string   | The name of the authorization bearer header.               | ✅       |
-| `removeHeadersOnSuccess`   | `true`            | bool     | If true will remove the header on success.                 | ✅       |
-| `keys`                     | `[]`              | []string | A list of valid keys that can be passed using the headers. | ❌       |
+| option                     | default           | type     | description                                                      | optional |
+| :------------------------- | :---------------- | :------- | :--------------------------------------------------------------- | :------- |
+| `authenticationHeader`     | `true`            | bool     | Use an authentication header to pass a valid key.                | ⚠️       |
+| `authenticationHeaderName` | `"X-API-KEY"`     | string   | The name of the authentication header.                           | ✅       |
+| `bearerHeader`             | `true`            | bool     | Use an authorization header to pass a bearer token (key).        | ⚠️       |
+| `bearerHeaderName`         | `"Authorization"` | string   | The name of the authorization bearer header.                     | ✅       |
+| `removeHeadersOnSuccess`   | `true`            | bool     | If true will remove the header on success.                       | ✅       |
+| `keys`                     | `[]`              | []string | A list of valid keys that can be passed using the headers.       | ❌       |
+| `hashedKeys`               | `[]`              | []string | A list of valid hashed keys that can be passed using the headers.| ❌       |
 
 ⚠️ - Is optional but at least one of `authenticationHeader` or `bearerHeader` must be set to `true`.
 
