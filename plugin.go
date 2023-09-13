@@ -13,6 +13,8 @@ type Config struct {
 	AuthenticationHeaderName string   `json:"headerName,omitempty"`
 	BearerHeader             bool     `json:"bearerHeader,omitempty"`
 	BearerHeaderName         string   `json:"bearerHeaderName,omitempty"`
+	QueryParam               bool     `json:"queryParam,omitempty"`
+	QueryParamName           string   `json:"queryParamName,omitempty"`
 	Keys                     []string `json:"keys,omitempty"`
 	RemoveHeadersOnSuccess   bool     `json:"removeHeadersOnSuccess,omitempty"`
 }
@@ -28,6 +30,8 @@ func CreateConfig() *Config {
 		AuthenticationHeaderName: "X-API-KEY",
 		BearerHeader:             true,
 		BearerHeaderName:         "Authorization",
+		QueryParam:               true,
+		QueryParamName:           "code",
 		Keys:                     make([]string, 0),
 		RemoveHeadersOnSuccess:   true,
 	}
@@ -39,6 +43,8 @@ type KeyAuth struct {
 	authenticationHeaderName string
 	bearerHeader             bool
 	bearerHeaderName         string
+	queryParam               bool
+	queryParamName           string
 	keys                     []string
 	removeHeadersOnSuccess   bool
 }
@@ -51,9 +57,9 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		return nil, fmt.Errorf("must specify at least one valid key")
 	}
 
-	// check at least one header is set
-	if !config.AuthenticationHeader && !config.BearerHeader {
-		return nil, fmt.Errorf("at least one header type must be true")
+	// check at least one method is set
+	if !config.AuthenticationHeader && !config.BearerHeader && !config.QueryParam {
+		return nil, fmt.Errorf("at least one method must be true")
 	}
 
 	return &KeyAuth{
@@ -62,6 +68,8 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		authenticationHeaderName: config.AuthenticationHeaderName,
 		bearerHeader:             config.BearerHeader,
 		bearerHeaderName:         config.BearerHeaderName,
+		queryParam:               config.QueryParam,
+		queryParamName:           config.QueryParamName,
 		keys:                     config.Keys,
 		removeHeadersOnSuccess:   config.RemoveHeadersOnSuccess,
 	}, nil
@@ -122,22 +130,20 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	var response Response
-	if ka.authenticationHeader && ka.bearerHeader {
-		response = Response{
-			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using either %s: $key or %s: Bearer $key", ka.authenticationHeaderName, ka.bearerHeaderName),
-			StatusCode: http.StatusForbidden,
+	// Check query param for valid key
+	if ka.queryParam {
+		var qs = req.URL.Query()
+		if contains(qs.Get(ka.queryParamName), ka.keys) {
+			qs.Del(ka.queryParamName)
+			req.URL.RawQuery = qs.Encode()
+			ka.next.ServeHTTP(rw, req)
+			return
 		}
-	} else if ka.authenticationHeader && !ka.bearerHeader {
-		response = Response{
-			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: $key", ka.authenticationHeaderName),
-			StatusCode: http.StatusForbidden,
-		}
-	} else if !ka.authenticationHeader && ka.bearerHeader {
-		response = Response{
-			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: Bearer $key", ka.bearerHeaderName),
-			StatusCode: http.StatusForbidden,
-		}
+	}
+
+	var response = Response{
+		Message:    "Invalid or missing API Key",
+		StatusCode: http.StatusForbidden,
 	}
 	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 	rw.WriteHeader(response.StatusCode)
