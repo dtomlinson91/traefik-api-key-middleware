@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 )
 
 type Config struct {
@@ -16,7 +15,6 @@ type Config struct {
 	BearerHeaderName         string   `json:"bearerHeaderName,omitempty"`
 	QueryParam               bool     `json:"queryParam,omitempty"`
 	QueryParamName           string   `json:"queryParamName,omitempty"`
-	PathSegment              bool     `json:"pathSegment,omitempty"`
 	Keys                     []string `json:"keys,omitempty"`
 	RemoveHeadersOnSuccess   bool     `json:"removeHeadersOnSuccess,omitempty"`
 }
@@ -34,7 +32,6 @@ func CreateConfig() *Config {
 		BearerHeaderName:         "Authorization",
 		QueryParam:               true,
 		QueryParamName:           "code",
-		PathSegment:              true,
 		Keys:                     make([]string, 0),
 		RemoveHeadersOnSuccess:   true,
 	}
@@ -48,7 +45,6 @@ type KeyAuth struct {
 	bearerHeaderName         string
 	queryParam               bool
 	queryParamName           string
-	pathSegment              bool
 	keys                     []string
 	removeHeadersOnSuccess   bool
 }
@@ -62,7 +58,7 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 	}
 
 	// check at least one method is set
-	if !config.AuthenticationHeader && !config.BearerHeader && !config.QueryParam && !config.PathSegment {
+	if !config.AuthenticationHeader && !config.BearerHeader && !config.QueryParam {
 		return nil, fmt.Errorf("at least one method must be true")
 	}
 
@@ -74,7 +70,6 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		bearerHeaderName:         config.BearerHeaderName,
 		queryParam:               config.QueryParam,
 		queryParamName:           config.QueryParamName,
-		pathSegment:              config.PathSegment,
 		keys:                     config.Keys,
 		removeHeadersOnSuccess:   config.RemoveHeadersOnSuccess,
 	}, nil
@@ -83,31 +78,13 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 // contains takes an API key and compares it to the list of valid API keys. The return value notes whether the
 // key is in the valid keys
 // list or not.
-func containsExact(key string, validKeys []string) bool {
+func contains(key string, validKeys []string) bool {
 	for _, a := range validKeys {
 		if a == key {
 			return true
 		}
 	}
 	return false
-}
-
-func contains(key string, validKeys []string) bool {
-	for _, a := range validKeys {
-		if strings.Contains(a, key) {
-			return true
-		}
-	}
-	return false
-}
-
-func getcontains(key string, validKeys []string) string {
-	for _, a := range validKeys {
-		if strings.Contains(a, key) {
-			return key
-		}
-	}
-	return ""
 }
 
 // bearer takes an API key in the `Authorization: Bearer $token` form and compares it to the list of valid keys.
@@ -125,13 +102,13 @@ func bearer(key string, validKeys []string) bool {
 	// If found extract the key and compare it to the list of valid keys
 	keyIndex := re.SubexpIndex("key")
 	extractedKey := matches[keyIndex]
-	return containsExact(extractedKey, validKeys)
+	return contains(extractedKey, validKeys)
 }
 
 func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Check authentication header for valid key
 	if ka.authenticationHeader {
-		if containsExact(req.Header.Get(ka.authenticationHeaderName), ka.keys) {
+		if contains(req.Header.Get(ka.authenticationHeaderName), ka.keys) {
 			// X-API-KEY header contains a valid key
 			if ka.removeHeadersOnSuccess {
 				req.Header.Del(ka.authenticationHeaderName)
@@ -155,17 +132,10 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// Check query param for valid key
 	if ka.queryParam {
-		if containsExact(req.URL.Query().Get(ka.queryParamName), ka.keys) {
-			ka.next.ServeHTTP(rw, req)
-			return
-		}
-	}
-
-	// Check URL path for valid key in segment
-	if ka.pathSegment {
-		if contains(req.URL.Path, ka.keys) {
-			// strip key from URL path
-			req.URL.Path = strings.Replace(req.URL.Path, "/"+getcontains(req.URL.Path, ka.keys), "", 1)
+		var qs = req.URL.Query()
+		if contains(qs.Get(ka.queryParamName), ka.keys) {
+			qs.Del(ka.queryParamName)
+			req.URL.RawQuery = qs.Encode()
 			ka.next.ServeHTTP(rw, req)
 			return
 		}
