@@ -83,7 +83,7 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 // contains takes an API key and compares it to the list of valid API keys. The return value notes whether the
 // key is in the valid keys
 // list or not.
-func contains(key string, validKeys []string) bool {
+func containsExact(key string, validKeys []string) bool {
 	for _, a := range validKeys {
 		if a == key {
 			return true
@@ -92,9 +92,18 @@ func contains(key string, validKeys []string) bool {
 	return false
 }
 
+func contains(key string, validKeys []string) bool {
+	for _, a := range validKeys {
+		if strings.Contains(a, key) {
+			return true
+		}
+	}
+	return false
+}
+
 func getcontains(key string, validKeys []string) string {
 	for _, a := range validKeys {
-		if a == key {
+		if strings.Contains(a, key) {
 			return key
 		}
 	}
@@ -116,13 +125,13 @@ func bearer(key string, validKeys []string) bool {
 	// If found extract the key and compare it to the list of valid keys
 	keyIndex := re.SubexpIndex("key")
 	extractedKey := matches[keyIndex]
-	return contains(extractedKey, validKeys)
+	return containsExact(extractedKey, validKeys)
 }
 
 func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Check authentication header for valid key
 	if ka.authenticationHeader {
-		if contains(req.Header.Get(ka.authenticationHeaderName), ka.keys) {
+		if containsExact(req.Header.Get(ka.authenticationHeaderName), ka.keys) {
 			// X-API-KEY header contains a valid key
 			if ka.removeHeadersOnSuccess {
 				req.Header.Del(ka.authenticationHeaderName)
@@ -146,8 +155,9 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// Check query param for valid key
 	if ka.queryParam {
-		if contains(req.URL.Query().Get(ka.queryParamName), ka.keys) {
+		if containsExact(req.URL.Query().Get(ka.queryParamName), ka.keys) {
 			ka.next.ServeHTTP(rw, req)
+			return
 		}
 	}
 
@@ -157,6 +167,7 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			// strip key from URL path
 			req.URL.Path = strings.Replace(req.URL.Path, "/"+getcontains(req.URL.Path, ka.keys), "", 1)
 			ka.next.ServeHTTP(rw, req)
+			return
 		}
 	}
 
