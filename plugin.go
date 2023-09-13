@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
 type Config struct {
@@ -13,6 +14,9 @@ type Config struct {
 	AuthenticationHeaderName string   `json:"headerName,omitempty"`
 	BearerHeader             bool     `json:"bearerHeader,omitempty"`
 	BearerHeaderName         string   `json:"bearerHeaderName,omitempty"`
+	QueryParam               bool     `json:"queryParam,omitempty"`
+	QueryParamName           string   `json:"queryParamName,omitempty"`
+	PathSegment              bool     `json:"pathSegment,omitempty"`
 	Keys                     []string `json:"keys,omitempty"`
 	RemoveHeadersOnSuccess   bool     `json:"removeHeadersOnSuccess,omitempty"`
 }
@@ -28,6 +32,9 @@ func CreateConfig() *Config {
 		AuthenticationHeaderName: "X-API-KEY",
 		BearerHeader:             true,
 		BearerHeaderName:         "Authorization",
+		QueryParam:               true,
+		QueryParamName:           "code",
+		PathSegment:              true,
 		Keys:                     make([]string, 0),
 		RemoveHeadersOnSuccess:   true,
 	}
@@ -39,6 +46,9 @@ type KeyAuth struct {
 	authenticationHeaderName string
 	bearerHeader             bool
 	bearerHeaderName         string
+	queryParam               bool
+	queryParamName           string
+	pathSegment              bool
 	keys                     []string
 	removeHeadersOnSuccess   bool
 }
@@ -51,9 +61,9 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		return nil, fmt.Errorf("must specify at least one valid key")
 	}
 
-	// check at least one header is set
-	if !config.AuthenticationHeader && !config.BearerHeader {
-		return nil, fmt.Errorf("at least one header type must be true")
+	// check at least one method is set
+	if !config.AuthenticationHeader && !config.BearerHeader && !config.QueryParam && !config.PathSegment {
+		return nil, fmt.Errorf("at least one method must be true")
 	}
 
 	return &KeyAuth{
@@ -62,6 +72,9 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		authenticationHeaderName: config.AuthenticationHeaderName,
 		bearerHeader:             config.BearerHeader,
 		bearerHeaderName:         config.BearerHeaderName,
+		queryParam:               config.QueryParam,
+		queryParamName:           config.QueryParamName,
+		pathSegment:              config.PathSegment,
 		keys:                     config.Keys,
 		removeHeadersOnSuccess:   config.RemoveHeadersOnSuccess,
 	}, nil
@@ -77,6 +90,15 @@ func contains(key string, validKeys []string) bool {
 		}
 	}
 	return false
+}
+
+func getcontains(key string, validKeys []string) string {
+	for _, a := range validKeys {
+		if a == key {
+			return key
+		}
+	}
+	return ""
 }
 
 // bearer takes an API key in the `Authorization: Bearer $token` form and compares it to the list of valid keys.
@@ -122,22 +144,25 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	var response Response
-	if ka.authenticationHeader && ka.bearerHeader {
-		response = Response{
-			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using either %s: $key or %s: Bearer $key", ka.authenticationHeaderName, ka.bearerHeaderName),
-			StatusCode: http.StatusForbidden,
+	// Check query param for valid key
+	if ka.queryParam {
+		if contains(req.URL.Query().Get(ka.queryParamName), ka.keys) {
+			ka.next.ServeHTTP(rw, req)
 		}
-	} else if ka.authenticationHeader && !ka.bearerHeader {
-		response = Response{
-			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: $key", ka.authenticationHeaderName),
-			StatusCode: http.StatusForbidden,
+	}
+
+	// Check URL path for valid key in segment
+	if ka.pathSegment {
+		if contains(req.URL.Path, ka.keys) {
+			// strip key from URL path
+			req.URL.Path = strings.Replace(req.URL.Path, "/"+getcontains(req.URL.Path, ka.keys), "", 1)
+			ka.next.ServeHTTP(rw, req)
 		}
-	} else if !ka.authenticationHeader && ka.bearerHeader {
-		response = Response{
-			Message:    fmt.Sprintf("Invalid API Key. Must pass a valid API Key header using %s: Bearer $key", ka.bearerHeaderName),
-			StatusCode: http.StatusForbidden,
-		}
+	}
+
+	var response = Response{
+		Message:    "Invalid or missing API Key",
+		StatusCode: http.StatusForbidden,
 	}
 	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 	rw.WriteHeader(response.StatusCode)
