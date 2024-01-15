@@ -13,6 +13,7 @@ type Config struct {
 	AuthenticationHeaderName string   `json:"headerName,omitempty"`
 	BearerHeader             bool     `json:"bearerHeader,omitempty"`
 	BearerHeaderName         string   `json:"bearerHeaderName,omitempty"`
+	RemotelyCheckUrl         string   `json:"remotelyCheckUrl,omitempty"`
 	Keys                     []string `json:"keys,omitempty"`
 	RemoveHeadersOnSuccess   bool     `json:"removeHeadersOnSuccess,omitempty"`
 }
@@ -28,6 +29,7 @@ func CreateConfig() *Config {
 		AuthenticationHeaderName: "X-API-KEY",
 		BearerHeader:             true,
 		BearerHeaderName:         "Authorization",
+		RemotelyCheckUrl:         "",
 		Keys:                     make([]string, 0),
 		RemoveHeadersOnSuccess:   true,
 	}
@@ -39,6 +41,7 @@ type KeyAuth struct {
 	authenticationHeaderName string
 	bearerHeader             bool
 	bearerHeaderName         string
+	remotelyCheckUrl         string
 	keys                     []string
 	removeHeadersOnSuccess   bool
 }
@@ -62,6 +65,7 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		authenticationHeaderName: config.AuthenticationHeaderName,
 		bearerHeader:             config.BearerHeader,
 		bearerHeaderName:         config.BearerHeaderName,
+		remotelyCheckUrl:         config.RemotelyCheckUrl,
 		keys:                     config.Keys,
 		removeHeadersOnSuccess:   config.RemoveHeadersOnSuccess,
 	}, nil
@@ -97,11 +101,42 @@ func bearer(key string, validKeys []string) bool {
 	return contains(extractedKey, validKeys)
 }
 
+func (ka *KeyAuth) checkApiKeyRemotely(key string) bool {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", ka.remotelyCheckUrl, nil)
+
+	if err != nil {
+		return false
+	}
+
+	req.Header.Add(ka.bearerHeaderName, key)
+	req.Header.Add(ka.authenticationHeaderName, key)
+	res, err := client.Do(req)
+
+	if err != nil {
+		return false
+	}
+
+	if res.StatusCode != 200 {
+		return false
+	}
+
+	return true
+}
+
 func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Check authentication header for valid key
 	if ka.authenticationHeader {
 		if contains(req.Header.Get(ka.authenticationHeaderName), ka.keys) {
 			// X-API-KEY header contains a valid key
+			if ka.removeHeadersOnSuccess {
+				req.Header.Del(ka.authenticationHeaderName)
+			}
+			ka.next.ServeHTTP(rw, req)
+			return
+		}
+
+		if ka.remotelyCheckUrl != "" && ka.checkApiKeyRemotely(req.Header.Get(ka.authenticationHeaderName)) {
 			if ka.removeHeadersOnSuccess {
 				req.Header.Del(ka.authenticationHeaderName)
 			}
@@ -116,6 +151,14 @@ func (ka *KeyAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			// Authorization header contains a valid Bearer token
 			if ka.removeHeadersOnSuccess {
 				req.Header.Del(ka.bearerHeaderName)
+			}
+			ka.next.ServeHTTP(rw, req)
+			return
+		}
+
+		if ka.remotelyCheckUrl != "" && ka.checkApiKeyRemotely(req.Header.Get(ka.bearerHeaderName)) {
+			if ka.removeHeadersOnSuccess {
+				req.Header.Del(ka.authenticationHeaderName)
 			}
 			ka.next.ServeHTTP(rw, req)
 			return
