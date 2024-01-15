@@ -74,7 +74,7 @@ http:
           bearerHeader = true
           bearerHeaderName = "Authorization"
           removeHeadersOnSuccess = true
-          remotelyCheckUrl = 'http://api-key-service'
+          remotelyCheckUrl = "http://api-key-service"
           keys = ["some-api-key"]
 ```
 
