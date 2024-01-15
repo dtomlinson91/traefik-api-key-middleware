@@ -56,6 +56,7 @@ http:
           bearerHeader: true
           bearerHeaderName: Authorization
           removeHeadersOnSuccess: true
+          remotelyCheckUrl: http://api-key-service.local
           keys:
             - some-api-key
 ```
@@ -73,6 +74,7 @@ http:
           bearerHeader = true
           bearerHeaderName = "Authorization"
           removeHeadersOnSuccess = true
+          remotelyCheckUrl = 'http://api-key-service'
           keys = ["some-api-key"]
 ```
 
@@ -91,6 +93,7 @@ spec:
       bearerHeader: true
       bearerHeaderName: Authorization
       removeHeadersOnSuccess: true
+      remotelyCheckUrl: "http://api-key-service"
       keys:
         - some-api-key
 ```
@@ -129,6 +132,7 @@ spec:
 | `bearerHeader`             | `true`            | bool     | Use an authorization header to pass a bearer token (key).  | ⚠️       |
 | `bearerHeaderName`         | `"Authorization"` | string   | The name of the authorization bearer header.               | ✅       |
 | `removeHeadersOnSuccess`   | `true`            | bool     | If true will remove the header on success.                 | ✅       |
+| `remotelyCheckUrl`         | `""`              | string   | If defined will use remote server to validate api key      | ✅       |
 | `keys`                     | `[]`              | []string | A list of valid keys that can be passed using the headers. | ❌       |
 
 ⚠️ - Is optional but at least one of `authenticationHeader` or `bearerHeader` must be set to `true`.
